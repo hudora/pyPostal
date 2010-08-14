@@ -8,12 +8,17 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
 
-import xml.etree.ElementTree as ET
-from httplib2 import Http
+import httplib
+import mimetypes
 import uuid
+import xml.etree.ElementTree as ET
 
 
-def encode_multipart_formdata(fields):
+def get_content_type(filename):
+    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+
+
+def encode_multipart_formdata(fields, files={}):
     """
     fields is a sequence of (name, value) elements for regular form fields.
     files is a sequence of (name, filename, value) elements for data to be uploaded as files
@@ -23,13 +28,17 @@ def encode_multipart_formdata(fields):
     boundary = '----------ThIs_Is_tHe_bouNdaRY_$%s' % (uuid.uuid4())
     out = []
     # if it's dict like then use the items method to get the fields
-    if hasattr(fields, "items"):
-        fields = fields.items()
-    for (key, value) in fields:
+    for (key, value) in fields.items():
         out.append('--' + boundary)
         out.append('Content-Disposition: form-data; name="%s"' % key)
         out.append('')
         out.append(value)
+    for (key, filename) in files.items():
+        out.append('--' + boundary)
+        out.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
+        out.append('Content-Type: %s' % get_content_type(filename))
+        out.append('')
+        out.append(open(filename).read())
     out.append('--' + boundary + '--')
     out.append('')
     body = '\r\n'.join([str(x) for x in out])
@@ -43,62 +52,22 @@ class Pixelletter(object):
         self.test_mode = test_mode
         self.username = username
         self.password = password
-        self.files = []
-
-    def get_account_info(self):
-        root = ET.Element('pixelletter', version='1.0')
-        auth = ET.SubElement(root, 'auth')
-        ET.SubElement(auth, 'email').text = self.username
-        ET.SubElement(auth, 'password').text = self.password
-
-        command = ET.SubElement(root, 'command')
-        info = ET.SubElement(command, 'info')
-        ET.SubElement(info, 'account:info ', type='all')
-        data = ET.tostring(root)
-        content_type, content = encode_multipart_formdata(fields=dict(xml=data))
-        resp, content = Http().request(self.url, 'POST', body=content, headers={"Content-Type": content_type})
-        if not resp.get('status') == '200':
-            raise RuntimeError("%s -- %r" % (content, resp))
+    
+    def POST(self, content_type, content):
+        h = httplib.HTTP('www.pixelletter.de')
+        h.putrequest('POST', '/xml/index.php')
+        h.putheader('host', 'www.pixelletter.de')
+        h.putheader('content-type', content_type)
+        h.putheader('content-length', str(len(content)))
+        h.endheaders()
+        h.send(content)
+        errcode, errmsg, headers = h.getreply()
+        content = h.file.read()
+        if str(errcode) != '200':
+            raise RuntimeError("%s -- %r" % (errcode, errmsg))
         return content
     
-# <?xml version="1.0" encoding="iso-8859-1"?>
-# <pixelletter version="1.1">
-#   <customer:id>353524</customer:id>
-#   <customer:data>
-#     <company>Cyberlogi GmbH</company>
-#     <sex>m</sex>
-#     <title>Dr.</title>
-#     <firstname>Maximillian</firstname>
-#     <lastname>Dornseif</lastname>
-#     <street>?lfestr. 20</street>
-#     <pcode>42477</pcode>
-#     <city>Radevormwald</city>
-#     <country>DE</country>
-#     <tel:prefix>0175</tel:prefix>
-#     <tel>1843787</tel>
-#     <fax:prefix />
-#     <fax />
-#     <mobil:prefix />
-#     <mobil />
-#     <email>verwaltung@cyberlogi.de</email>
-#     <payment:type>guthaben</payment:type>
-#   </customer:data>
-#   <customer:credit currency="EUR">20.08</customer:credit>
-# </pixelletter>
-
-    
-    
-    #def generate_pdf(self,
-    #
-
-    def addFile(self, filename):
-        self.files.append(filename)
-
-    def sendPost(self, dest_country='DE'):
-
-        #if len(self.files) < 1:
-        #    raise ValueError( "No files to send...")
-
+    def _get_auth_xml(self):
         root = ET.Element('pixelletter', version='1.0')
         auth = ET.SubElement(root, 'auth')
         ET.SubElement(auth, 'email').text = self.username
@@ -106,32 +75,118 @@ class Pixelletter(object):
         ET.SubElement(auth, 'agb').text = 'ja'
         ET.SubElement(auth, 'widerrufsverzicht').text = 'ja'
         ET.SubElement(auth, 'testmodus').text = 'true' if self.test_mode else 'false'
+        ET.SubElement(auth, 'ref').text = 'reference#'
+        return root
+    
+    def get_account_info(self):
+        """Return a dict with account status information, e.g
+        
+        {'company': 'Cyberlogi GmbH'
+         'customer_credit': 2007, # Betrag in Cent
+         'customer_data': '', 
+         'customer_id': '353***', 
+         'email': '***@cyberlogi.de', 
+         'payment_type': 'guthaben', 
+         'sex': 'yes', 
+         'tel': '184****', 
+         'tel_prefix': '017*', 
+         'title': 'Dr.', 
+         ...
+         }
+        """
+        root = self._get_auth_xml()
 
-        order = ET.SubElement(root, 'order')
+        command = ET.SubElement(root, 'command')
+        info = ET.SubElement(command, 'info')
+        ET.SubElement(info, 'account:info ', type='all')
+        data = ET.tostring(root)
+        content_type, content = encode_multipart_formdata(fields=dict(xml=data))
+
+        reply = self.POST(content_type, content)
+        # Pixelletter's XML is invalid
+        # it is messing with namespaces - remove them to generate valid XML
+        content = reply.replace('customer:', 'customer_')
+        content = content.replace('tel:prefix', 'tel_prefix')
+        content = content.replace('fax:prefix', 'fax_prefix')
+        content = content.replace('mobil:prefix', 'mobil_prefix')
+        content = content.replace('payment:type', 'payment_type')
+        response = ET.fromstring(content)
+        ret = {}
+        for parent in response.getiterator():
+            for child in parent:
+                text = child.text
+                if not text:
+                    text = ''
+                ret[child.tag] = text.strip()
+        ret['customer_credit'] = int(float(ret['customer_credit'])*100)
+        return ret
+
+
+    def sendPost(self, uploadfiles, dest_country='DE', guid='', services=None):
+
+        if not services:
+            services = ['green']
+        addoption = set()
+        for service in services:
+            if service == 'einschreiben':
+                addoption.add('27')
+            elif service == 'einschreibeneinwurf':
+                addoption.add('30')
+            elif service == 'eigenhaendig':
+                addoption.add('27')
+                addoption.add('29')
+            elif service == 'eigenhaendigrueckschein':
+                addoption.add('27')
+                addoption.add('28')
+                addoption.add('29')
+            elif service == 'rueckschein':
+                addoption.add('27')
+                addoption.add('29')
+            elif service == 'green':
+                addoption.add('44')
+            elif service == 'color':
+                addoption.add('33')
+            else:
+                raise ValueError('unbekannter servicelevel %s - gueltig ist %r' % (servicelevel,
+                    ['einschreiben', 'einschreibeneinwurf', 'eigenhaendig', 'eigenhaendigrueckschein',
+                     'rueckschein', 'green', 'color']))
+            # Unsupported so far
+            # <option value="31" >Nachnahme
+            # <option value="42"> Postident Comfort
+            # <option value="43" >Überweisungsvordruck
+        addoption = ','.join(list(addoption))
+
+        if len(uploadfiles) < 1:
+            raise ValueError( "No files to send...")
+
+        root = self._get_auth_xml()
+
+        order = ET.SubElement(root, 'order', type='upload')
         options = ET.SubElement(order, 'options')
         ET.SubElement(options, 'type').text = 'upload'
-        ET.SubElement(options, 'action').text = '1'
+        ET.SubElement(options, 'action').text = '1' # Brief
         ET.SubElement(options, 'destination').text = dest_country
+        if guid:
+            ET.SubElement(options, 'transaction').text = str(guid)
+        if addoption:
+            ET.SubElement(options, 'addoption').text = addoption
 
-        #<control>
-        #<location>
-        #<transaction> In der Zeile transaction: können Sie hinter den Doppelpunkt eine eigene Transaktionsnummer oder einen kurzen Text angeben, den Sie mit dem Auftrag in Verbindung bringen. Dieses Feld kann aber auch leer gelassen werden bzw. komplett entfernt werden.
-        #<addoption> 27 steht für „Einschreiben“ 28 steht für zusätzlichen „Rückschein“ (nur zusammen mit 27) 29 steht für zusätzlich „Eigenhändig“ (nur zusammen mit 27) 30 steht für „Einschreiben Einwurf“
-        # 30 ist nicht kombinierbar mit anderen Einschreibe-Variationen. 27 ist Pflichtangabe, wenn 28 oder 29 verwendet werden soll. 28 oder 29 können beide oder einzeln mit 27 kombiniert werden. Hier einige Beispiele:
-        # addoption: addoption: addoption: addoption:
-        # 27,28,29	-> bedeutet Eigenhändiges Einschreiben mit Rückschein 27,29	-> bedeutet Eigenhändiges Einschreiben ohne Rückschein 27	-> bedeutet normales Einschreiben 30	-> bedeutet Einschreiben Einwurf
-        #<returnaddress>
+        # Unsupported so far:
+        # <fax>
+        # <control>
+        # <returnaddress>
 
-        print ET.tostring(root)
-        tree = ET.ElementTree(root)
-        print dir(tree)
-        #buf = StringIO()
-        #tree.write(buf, encoding="utf-8")
-        #ret = buf.getvalue()
-        #buf.close()
-        #return ret
+        data = ET.tostring(root)
+        print data
+        form = {'xml': data}
+        files = {}
+        for i, fname in enumerate(uploadfiles):
+            files['uploadfile%d' % i] = fname
+        content_type, content = encode_multipart_formdata(form, files)
+        reply = self.POST(content_type, content)
+        return reply if reply else True
 
-        # $self->_submitForm( $xml );
 
-pix = Pixelletter('mail', 'pass')
-print pix.get_account_info()
+pix = Pixelletter('verwaltung@cyberlogi.de', 'Nap5yuwu', test_mode=True)
+
+print pix.sendPost(['/private/var/folders/MN/MNN6CyUoFTGOB48UQNYueU+++TI/-Tmp-/WebKitPDFs-Apcxq1/Copy_of_Briefbogen_Cyberlogi.pdf'])
