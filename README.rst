@@ -20,11 +20,14 @@ Usage is very easy: Just set up your credentials in the Environment before start
 Then call ``pypostal.send_post_pixelletter()`` with the open PDF files or PDF datatream to send and the country code of the recipient::
 
     >>> import pypostal
-    >>> pypostal.send_post_pixelletter([open('/Users/md/Desktop/Testbrief.pdf').read()], 'DE')
+    >>> pypostal.send_post_pixelletter(
+            [open('/Users/md/Desktop/Testbrief.pdf').read()], 'DE')
 
 If you prefer to hardcode credentials you can provide them via a function call instead via the environment::
 
-    >>> pypostal.send_post_pixelletter([open('Testbrief.pdf')], 'DE', username='your@email.com', password='PASSWORD')
+    >>> pypostal.send_post_pixelletter([open('Testbrief.pdf')], 'DE', 
+                                       username='your@email.com', 
+                                       password='PASSWORD')
 
 
 Pixelletter Interface
@@ -47,12 +50,14 @@ The Pixelletter interface is streightforwart::
     1995
     
     # Send two PDFs from your Desktop as en Letter
-    >>> print pix.sendPost([open('/Users/md/Desktop/Testbrief.pdf'), open('/Users/md/Desktop/Thesis.pdf')])
+    >>> print pix.sendPost([open('/Users/md/Desktop/Testbrief.pdf'), 
+                            open('/Users/md/Desktop/Thesis.pdf')])
 
     # Send one PDF printet in color and in CO2 neutral fashion.
-    >>> print pix.sendPost([open('/Users/md/Desktop/Testbrief.pdf').read()], guid='0815-4711', service=['green', 'color'])
+    >>> print pix.sendPost([open('/Users/md/Desktop/Testbrief.pdf').read()], 
+                           guid='0815-4711', service=['green', 'color'])
 
-You can provide a GUID ("Transaction IDentifier" in the Pixelletter Documenttion) - this might support a Track and Trace Interface but I havn't seen any documentation on this. Something like https://www.pixelletter.de/de/auftraege.php as an `Atom Feed <http://en.wikipedia.org/wiki/Atom_(standard)>`_ vertainly would be nice.
+You can provide a GUID ("Transaction Identifier" in the Pixelletter Documenttion) - this might support a Track and Trace Interface but I havn't seen any documentation on this. Something like https://www.pixelletter.de/de/auftraege.php as an `Atom Feed <http://en.wikipedia.org/wiki/Atom_(standard)>`_ vertainly would be nice.
 
 The Python library currently supports following services:
 
@@ -64,7 +69,7 @@ The Python library currently supports following services:
 * rueckschein
 * color
 
-The Pixelletter API also seems to support "Nachnahme", "Postident Comfort" and "Überweisungsvordruck" but they are undocumented and currently not supported by this library. 
+The Pixelletter API also seems to support "Nachnahme", "Postident Comfort" and "Ueberweisungsvordruck" but they are undocumented and currently not supported by this library. 
 
 
 Links
@@ -73,4 +78,4 @@ Links
 * `WWW::Pixelletter <http://cpansearch.perl.org/src/RCL/WWW--Pixelletter-0.1/lib/WWW/Pixelletter.pm>`_ (Perl Module) for Pixelletter
 * `PHP Library <http://www.pixelletter.de/xml/pixelletter.class.txt>`_ for Pixelletter
 * `Pixelletter Documentation <https://www.pixelletter.de/de/doku2.php>`_
-* `pyJasper <http://github.com/hudora/pyJasper>`_ and `iReport <http://www.jaspersoft.com/de/ireport>`_ are a decent Way to generate PDFs.
+* `pyJasper <http://github.com/hudora/pyJasper>`_ and `iReport <http://www.jaspersoft.com/de/ireport>`_ are a decent way to generate PDFs.
