@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-pypostal/__init__.py
+pypostal/postal.py - sending of letters
 
 Created by Maximillian Dornseif on 2010-08-12.
 Copyright (c) 2010 HUDORA. All rights reserved.
@@ -10,12 +10,13 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 
 import httplib
 import mimetypes
+import os
 import uuid
 import xml.etree.ElementTree as ET
 
 
 def get_content_type(filename):
-    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    return mimetypes.guess_type(filename)[0] or 'application/pdf '
 
 
 def encode_multipart_formdata(fields, files={}):
@@ -33,12 +34,18 @@ def encode_multipart_formdata(fields, files={}):
         out.append('Content-Disposition: form-data; name="%s"' % key)
         out.append('')
         out.append(value)
-    for (key, filename) in files.items():
+    for (key, fd) in files.items():
+        if hasattr(fd, 'name'):
+            filename = fd.name
+            filedata = fd.read()
+        else:
+            filename = key + '.pdf'
+            filedata = fd
         out.append('--' + boundary)
         out.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
         out.append('Content-Type: %s' % get_content_type(filename))
         out.append('')
-        out.append(open(filename).read())
+        out.append(filedata)
     out.append('--' + boundary + '--')
     out.append('')
     body = '\r\n'.join([str(x) for x in out])
@@ -48,7 +55,6 @@ def encode_multipart_formdata(fields, files={}):
 
 class Pixelletter(object):
     def __init__(self, username, password, test_mode=False):
-        self.url = 'http://www.pixelletter.de/xml/index.php'
         self.test_mode = test_mode
         self.username = username
         self.password = password
@@ -123,7 +129,29 @@ class Pixelletter(object):
 
 
     def sendPost(self, uploadfiles, dest_country='DE', guid='', services=None):
-
+        """Instructs pixelletter.de to send a letter.
+            Send one PDF printed in color and in CO2 neutral fashion.
+            
+            >>> print pix.sendPost(['/Users/md/Desktop/Testbrief.pdf'], guid='0815-4711', service=['green', 'color'])
+            
+            Uploadfiles is a list of filenames to be send (as a single letter). The first page must contain
+            the destination Address.
+            
+            dest_country is the country where the letter is going to be send to - this is needed for postage calculation.
+            
+            guid is some tracking ID specific to the user and can be left blank
+            
+            services is a list of additional services requested. It defaults to ['green']
+            The Python library currently supports following services:
+            
+            * green - GoGreen CO2 neutral postage(default, use ``service=[]`` to disable)
+            * einschreiben
+            * einschreibeneinwurf
+            * eigenhaendig
+            * eigenhaendigrueckschein
+            * rueckschein
+            * color
+            """
         if not services:
             services = ['green']
         addoption = set()
@@ -156,8 +184,6 @@ class Pixelletter(object):
             # <option value="43" >Überweisungsvordruck
         addoption = ','.join(list(addoption))
 
-        if len(uploadfiles) < 1:
-            raise ValueError( "No files to send...")
 
         root = self._get_auth_xml()
 
@@ -177,16 +203,24 @@ class Pixelletter(object):
         # <returnaddress>
 
         data = ET.tostring(root)
-        print data
+        # print data
         form = {'xml': data}
         files = {}
-        for i, fname in enumerate(uploadfiles):
-            files['uploadfile%d' % i] = fname
+        if len(uploadfiles) < 1:
+            raise ValueError( "No files to send...")
+        for i, fd in enumerate(uploadfiles):
+            files['uploadfile%d' % i] = fd
         content_type, content = encode_multipart_formdata(form, files)
         reply = self.POST(content_type, content)
         return reply if reply else True
 
 
-pix = Pixelletter('verwaltung@cyberlogi.de', 'Nap5yuwu', test_mode=True)
-
-print pix.sendPost(['/private/var/folders/MN/MNN6CyUoFTGOB48UQNYueU+++TI/-Tmp-/WebKitPDFs-Apcxq1/Copy_of_Briefbogen_Cyberlogi.pdf'])
+def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, username=None, password=None, test_mode=False):
+    if not username:
+        os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[0]
+    if not password:
+        os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[1]
+    
+    pix = Pixelletter(username, password, test_mode=test_mode)
+    pix.sendPost(uploadfiles, dest_country, services=services)
+    return True

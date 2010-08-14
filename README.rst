@@ -13,7 +13,18 @@ This interface only supports mailing PDFs which have the Address Placed in the P
 High-Level Usage
 ================
 
+Usage is very easy: Just set up your credentials in the Environment before starting Python::
 
+    export PYPOSTAL_PIXELLETTER_CRED='your@email.com:PASSWORD'
+
+Then call ``pypostal.send_post_pixelletter()`` with the open PDF files or PDF datatream to send and the country code of the recipient::
+
+    >>> import pypostal
+    >>> pypostal.send_post_pixelletter([open('/Users/md/Desktop/Testbrief.pdf').read()], 'DE')
+
+If you prefer to hardcode credentials you can provide them via a function call instead via the environment::
+
+    >>> pypostal.send_post_pixelletter([open('Testbrief.pdf')], 'DE', username='your@email.com', password='PASSWORD')
 
 
 Pixelletter Interface
@@ -36,17 +47,17 @@ The Pixelletter interface is streightforwart::
     1995
     
     # Send two PDFs from your Desktop as en Letter
-    >>> print pix.sendPost(['/Users/md/Desktop/Testbrief.pdf', '/Users/md/Desktop/Thesis.pdf'])
+    >>> print pix.sendPost([open('/Users/md/Desktop/Testbrief.pdf'), open('/Users/md/Desktop/Thesis.pdf')])
 
     # Send one PDF printet in color and in CO2 neutral fashion.
-    >>> print pix.sendPost(['/Users/md/Desktop/Testbrief.pdf'], guid='0815-4711', service=['green', 'color'])
+    >>> print pix.sendPost([open('/Users/md/Desktop/Testbrief.pdf').read()], guid='0815-4711', service=['green', 'color'])
 
 You can provide a GUID ("Transaction IDentifier" in the Pixelletter Documenttion) - this might support a Track and Trace Interface but I havn't seen any documentation on this. Something like https://www.pixelletter.de/de/auftraege.php as an `Atom Feed <http://en.wikipedia.org/wiki/Atom_(standard)>`_ vertainly would be nice.
 
 The Python library currently supports following services:
 
 * green (default, use ``service=[]`` to disable)
-* einschreiben
+* einschreiben (see `DHL / Deutsche Post AG <http://www.deutschepost.de/dpag?skin=lo&check=no&lang=de_DE&tab=1&xmlFile=link1015321_6396>`_ on the differences)
 * einschreibeneinwurf
 * eigenhaendig
 * eigenhaendigrueckschein
@@ -56,9 +67,10 @@ The Python library currently supports following services:
 The Pixelletter API also seems to support "Nachnahme", "Postident Comfort" and "Überweisungsvordruck" but they are undocumented and currently not supported by this library. 
 
 
-See Also
-========
+Links
+=====
 
 * `WWW::Pixelletter <http://cpansearch.perl.org/src/RCL/WWW--Pixelletter-0.1/lib/WWW/Pixelletter.pm>`_ (Perl Module) for Pixelletter
 * `PHP Library <http://www.pixelletter.de/xml/pixelletter.class.txt>`_ for Pixelletter
 * `Pixelletter Documentation <https://www.pixelletter.de/de/doku2.php>`_
+* `pyJasper <http://github.com/hudora/pyJasper>`_ and `iReport <http://www.jaspersoft.com/de/ireport>`_ are a decent Way to generate PDFs.
