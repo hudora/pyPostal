@@ -212,7 +212,7 @@ class Pixelletter(object):
             files['uploadfile%d' % i] = fd
         content_type, content = encode_multipart_formdata(form, files)
         reply = self.POST(content_type, content)
-        return reply if reply else True
+        return guid
 
 
 def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, username=None, password=None, test_mode=False):
@@ -222,5 +222,4 @@ def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None
         os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[1]
     
     pix = Pixelletter(username, password, test_mode=test_mode)
-    pix.sendPost(uploadfiles, dest_country, services=services)
-    return True
+    return pix.sendPost(uploadfiles, dest_country, services=services)
