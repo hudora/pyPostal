@@ -72,6 +72,15 @@ The Python library currently supports following services:
 The Pixelletter API also seems to support "Nachnahme", "Postident Comfort" and "Ueberweisungsvordruck" but they are undocumented and currently not supported by this library. 
 
 
+Planned other Interfaces
+========================
+
+We want to support
+
+* Sipgate and Pixelletter Fax interfaces
+* Pawisda L-Vin Post / Pinbriefportal SOAP Interface
+
+
 Links
 =====
 

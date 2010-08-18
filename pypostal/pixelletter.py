@@ -212,14 +212,18 @@ class Pixelletter(object):
             files['uploadfile%d' % i] = fd
         content_type, content = encode_multipart_formdata(form, files)
         reply = self.POST(content_type, content)
-        return guid
+        if not '<msg>Auftrag erfolgreich ' in reply:
+            raise RuntimeError("API fehler: %s" % (reply))
+        return guid, ''
 
 
 def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, username=None, password=None, test_mode=False):
     if not username:
-        os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[0]
+        username = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[0]
     if not password:
-        os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[1]
+        password = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[1]
     
+    if (not username) or (not password):
+        raise RuntimeError('set PYPOSTAL_PIXELLETTER_CRED="user:pass"')
     pix = Pixelletter(username, password, test_mode=test_mode)
     return pix.sendPost(uploadfiles, dest_country, services=services)
