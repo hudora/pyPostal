@@ -1,3 +1,4 @@
 *~
 dist/
 pyPostal.egg-info/
+*.pyc
