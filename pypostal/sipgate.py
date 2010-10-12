@@ -11,6 +11,7 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 
 
 import httplib
+import os
 import urllib
 import urlparse
 
@@ -32,12 +33,12 @@ def add_query(url, params):
 
 def send_fax_sipgate(uploadfiles, source, dest_numbers=[], guid='', username=None, password=None):
     if not username:
-        os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':')[0]
+        username = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[0]
     if not password:
-        os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':')[1]
+        password = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[1]
     
     sip = Sipgate(username, password)
-    return sip.sendFax(uploadfiles, dest_numbers)
+    return sip.sendFax(uploadfiles, source, dest_numbers)
 
 
 def clean_number(number):
@@ -54,7 +55,7 @@ class Sipgate(object):
         self.version = '2.17.0'
         self.username = username
         self.password = password
-    
+        
     @property
     def authheader(self):
         auth = '%s:%s' % (self.username, self.password)
