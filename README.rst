@@ -39,7 +39,7 @@ Pixelletter offers a `Bunch of Documentation <https://www.pixelletter.de/de/doku
 Example Usage
 -------------
 
-The Pixelletter interface is streightforwart::
+The Pixelletter interface is straightforward::
 
     # Log in
     >>> from pypostal import Pixelletter
@@ -72,12 +72,31 @@ The Python library currently supports following services:
 The Pixelletter API also seems to support "Nachnahme", "Postident Comfort" and "Ueberweisungsvordruck" but they are undocumented and currently not supported by this library. 
 
 
+Sipgate.de Interface
+=====================
+
+Sipgate.de offers a hot and new REST API with `some documentation <http://www.live.sipgate.de/api/rest>`_ .
+
+
+Example Usage
+-------------
+
+A nice and clean interface::
+
+    # Log in
+    >>> from pypostal.sipgate import Sipgate
+    >>> sip = Sipgate('your_email', 'your_password')
+        
+    # Send a PDF via Fax
+    >>> sip.sendFax([open('/Users/md/Desktop/Testbrief.pdf')], 'sender_number', ['dest_number'])
+
+
 Planned other Interfaces
 ========================
 
 We want to support
 
-* Sipgate and Pixelletter Fax interfaces
+* Pixelletter Fax interface
 * Pawisda L-Vin Post / Pinbriefportal SOAP Interface
 
 

@@ -10,30 +10,58 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
 
-# So far this does not work because of sipgate API issues.
-
-
 import httplib
+import os
 import urllib
-import base64
+import urlparse
 
 
-def send_fax_sipgate(uploadfiles, dest_numbers=[], guid='', username=None, password=None):
+def add_query(url, params):
+    """
+    Add GET parameters to a given URL
+    
+    >>> add_query('/sicrit/', {'passphrase': 'fiftyseveneleven'})
+    '/sicrit/?passphrase=fiftyseveneleven'
+    """
+    
+    url_parts = list(urlparse.urlparse(url))
+    query = dict(urlparse.parse_qsl(url_parts[4]))
+    query.update(params)
+    url_parts[4] = urllib.urlencode(query)
+    return urlparse.urlunparse(url_parts)
+
+
+def send_fax_sipgate(uploadfiles, source, dest_numbers=[], guid='', username=None, password=None):
     if not username:
-        os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':')[0]
+        username = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[0]
     if not password:
-        os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':')[1]
+        password = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[1]
     
     sip = Sipgate(username, password)
-    return sip.sendFax(uploadfiles, dest_numbers)
+    return sip.sendFax(uploadfiles, source, dest_numbers)
+
+
+def clean_number(number):
+    """Try to clean a phonenumber"""
+    
+    if number.startswith('0'):
+        number = '49' + number[1:]
+    number = number.replace(' ', '').replace('-', '').replace('+', '')
+    return number
 
 
 class Sipgate(object):
     def __init__(self, username, password):
+        self.version = '2.17.0'
         self.username = username
         self.password = password
         
-    def sendFax(self, uploadfiles, dest_numbers, guid=''):
+    @property
+    def authheader(self):
+        auth = '%s:%s' % (self.username, self.password)
+        return "Basic %s" % auth.encode('base64').strip()
+    
+    def sendFax(self, uploadfiles, source, dest_numbers, guid=''):
         if len(uploadfiles) > 1:
             raise ValueError('Sipgate currently only supports single PDF uploading')
         if hasattr(uploadfiles[0], 'name'):
@@ -41,19 +69,25 @@ class Sipgate(object):
         else:
             filedata = uploadfiles[0]
         
-        params = urllib.urlencode({'version': '2.10', 
-                                   'targets': ','.join(destnumbers),
-                                   'source': filedata.encode('base64')})
-        auth = base64.encodestring('%s:%s' % (username, password))[:-1]
-        headers = {"Content-type": "application/x-www-form-urlencoded", 
-                   "Accept": "application/json",
-                   "Authorization": "Basic %s" % auth}
+        params = {'version': self.version, 'source': 'tel:' + clean_number(source),
+                  'targets': ",".join('tel:' + clean_number(dest) for dest in dest_numbers)}
+        url = add_query("/my/events/faxes/", params)
+        headers = {"Content-Type": "application/pdf", "Authorization": self.authheader}
+        
         conn = httplib.HTTPSConnection("api.sipgate.net")
-        conn.request("POST", "/my/events/faxes/", params, headers)
+        conn.request("POST", url, headers=headers, body=filedata)
+        
         response = conn.getresponse()
+        
+        # TODO: Error handling
         print response.status, response.reason
         data = response.read()
         print data
+        
         conn.close()
         return guid
 
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
