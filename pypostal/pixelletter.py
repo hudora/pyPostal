@@ -15,6 +15,12 @@ import uuid
 import xml.etree.ElementTree as ET
 
 
+try:
+    import config
+except:
+    config = None
+
+
 def get_content_type(filename):
     return mimetypes.guess_type(filename)[0] or 'application/pdf '
 
@@ -219,9 +225,15 @@ class Pixelletter(object):
 
 def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, username=None, password=None, test_mode=False):
     if not username:
-        username = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[0]
+        try:
+            username = config.PYPOSTAL_PIXELLETTER_CRED.split(':')[0]
+        except:
+            password = os.getenv('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[0]
     if not password:
-        password = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[1]
+        try:
+            password = config.PYPOSTAL_PIXELLETTER_CRED.split(':')[1]
+        except:
+            password = os.getenv('PYPOSTAL_PIXELLETTER_CRED', ':').split(':')[1]
     
     if (not username) or (not password):
         raise RuntimeError('set PYPOSTAL_PIXELLETTER_CRED="user:pass"')
