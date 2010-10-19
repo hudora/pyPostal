@@ -1,6 +1,7 @@
 ========
 pyPostal
 ========
+
 pyPostal is an Interface for sending real (paper-based) letters via an API.
 
 
@@ -8,6 +9,8 @@ There are several providers which offer printing, envelope stuffing and posting 
 https://www.pixelletter.de/ provides such services to SME without contractual hassles and the like.
 
 This interface only supports mailing PDFs which have the Address Placed in the PDF at the `DIN 5008 <http://de.wikipedia.org/wiki/DIN_5008>`_ Address Location.
+
+You can download it at the `Python PAckage Index (PyPI) <http://pypi.python.org/pypi/pyPostal/>`_.
 
 
 High-Level Usage
@@ -72,10 +75,10 @@ The Python library currently supports following services:
 The Pixelletter API also seems to support "Nachnahme", "Postident Comfort" and "Ueberweisungsvordruck" but they are undocumented and currently not supported by this library. 
 
 
-Sipgate.de Interface
-=====================
+Sipgate.de Fax Interface
+========================
 
-Sipgate.de offers a hot and new REST API with `some documentation <http://www.live.sipgate.de/api/rest>`_ .
+Sipgate.de offers a hot and new REST API with `some documentation <http://www.live.sipgate.de/api/rest>`_. Pypostal provides functionality to send PDFs via Fax.
 
 
 Example Usage
