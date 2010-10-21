@@ -9,15 +9,11 @@ Created by Maximillian Dornseif on 2010-08-14.
 Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
+
 import httplib
 import os
 import urllib
 import urlparse
-
-try:
-    from django.conf import settings
-except ImportError:
-    settings = object()
 
 
 try:
@@ -80,10 +76,12 @@ class Sipgate(object):
         conn.request("POST", url, headers=headers, body=filedata)
         
         response = conn.getresponse()
+        
         # TODO: Error handling
-        # print response.status, response.reason
-        # data = response.read()
-        # print data
+        print response.status, response.reason
+        data = response.read()
+        print data
+        
         conn.close()
         return guid
 
