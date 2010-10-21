@@ -19,12 +19,21 @@ High-Level Usage
 Usage is very easy: Just set up your credentials in the Environment before starting Python::
 
     export PYPOSTAL_PIXELLETTER_CRED='your@email.com:PASSWORD'
+    export PYPOSTAL_SIPGATE_CRED='your@email.com:PASSWORD'
 
 Then call ``pypostal.send_post_pixelletter()`` with the open PDF files or PDF datatream to send and the country code of the recipient::
 
     >>> import pypostal
     >>> pypostal.send_post_pixelletter(
             [open('/Users/md/Desktop/Testbrief.pdf').read()], 'DE')
+
+For Sending Faxes you need a Sender number 
+
+    >>> import pypostal
+    >>> pypostal.send_fax_sipgate(
+            [open('/Users/md/Desktop/Testbrief.pdf').read()],
+            dest_numbers=['+49123456', '+49654321'], '+49-meine-nummer')
+
 
 If you prefer to hardcode credentials you can provide them via a function call instead via the environment::
 
@@ -78,7 +87,7 @@ The Pixelletter API also seems to support "Nachnahme", "Postident Comfort" and "
 Sipgate.de Fax Interface
 ========================
 
-Sipgate.de offers a hot and new REST API with `some documentation <http://www.live.sipgate.de/api/rest>`_. Pypostal provides functionality to send PDFs via Fax.
+Sipgate.de offers a hot and new REST API with `some documentation <http://www.live.sipgate.de/api/rest>`_. Pypostal provides functionality to send PDFs via Fax. You can use `PYPOSTAL_SIPGATE_CRED` to set Credentials.
 
 
 Example Usage
@@ -89,9 +98,9 @@ A nice and clean interface::
     # Log in
     >>> from pypostal.sipgate import Sipgate
     >>> sip = Sipgate('your_email', 'your_password')
-        
     # Send a PDF via Fax
-    >>> sip.sendFax([open('/Users/md/Desktop/Testbrief.pdf')], 'sender_number', ['dest_number'])
+    >>> sip.sendFax([open('/Users/md/Desktop/Testbrief.pdf')], ['+49123456'], '+49654321')
+
 
 
 Planned other Interfaces

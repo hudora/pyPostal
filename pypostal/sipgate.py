@@ -16,6 +16,12 @@ import urllib
 import urlparse
 
 
+try:
+    import config
+except:
+    config = None
+
+
 def add_query(url, params):
     """
     Add GET parameters to a given URL
@@ -29,16 +35,6 @@ def add_query(url, params):
     query.update(params)
     url_parts[4] = urllib.urlencode(query)
     return urlparse.urlunparse(url_parts)
-
-
-def send_fax_sipgate(uploadfiles, source, dest_numbers=[], guid='', username=None, password=None):
-    if not username:
-        username = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[0]
-    if not password:
-        password = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[1]
-    
-    sip = Sipgate(username, password)
-    return sip.sendFax(uploadfiles, source, dest_numbers)
 
 
 def clean_number(number):
@@ -61,7 +57,7 @@ class Sipgate(object):
         auth = '%s:%s' % (self.username, self.password)
         return "Basic %s" % auth.encode('base64').strip()
     
-    def sendFax(self, uploadfiles, source, dest_numbers, guid=''):
+    def sendFax(self, uploadfiles, dest_numbers, source=None, guid=''):
         if len(uploadfiles) > 1:
             raise ValueError('Sipgate currently only supports single PDF uploading')
         if hasattr(uploadfiles[0], 'name'):
@@ -69,8 +65,10 @@ class Sipgate(object):
         else:
             filedata = uploadfiles[0]
         
-        params = {'version': self.version, 'source': 'tel:' + clean_number(source),
+        params = {'version': self.version,
                   'targets': ",".join('tel:' + clean_number(dest) for dest in dest_numbers)}
+        if source:
+            params['source'] = 'tel:' + clean_number(source),
         url = add_query("/my/events/faxes/", params)
         headers = {"Content-Type": "application/pdf", "Authorization": self.authheader}
         
@@ -86,6 +84,25 @@ class Sipgate(object):
         
         conn.close()
         return guid
+
+
+def send_fax_sipgate(uploadfiles, dest_numbers=[], source=None, guid='', username=None, password=None):
+    if not username:
+        try:
+            username = config.PYPOSTAL_PIXELLETTER_CRED.split(':')[0]
+        except:
+            password = os.getenv('PYPOSTAL_SIPGATE_CRED', ':').split(':')[0]
+    if not password:
+        try:
+            password = config.PYPOSTAL_PIXELLETTER_CRED.split(':')[1]
+        except:
+            password = os.getenv('PYPOSTAL_SIPGATE_CRED', ':').split(':')[1]
+    
+    if (not username) or (not password):
+        raise RuntimeError('set PYPOSTAL_SIPGATE_CRED="user:pass"')
+    
+    sip = Sipgate(username, password)
+    return sip.sendFax(uploadfiles, dest_numbers, source)
 
 
 if __name__ == "__main__":

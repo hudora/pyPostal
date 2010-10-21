@@ -8,3 +8,4 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
 from pypostal.pixelletter import *
+from pypostal.sipgate import *
