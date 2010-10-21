@@ -9,11 +9,15 @@ Created by Maximillian Dornseif on 2010-08-14.
 Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
-
 import httplib
 import os
 import urllib
 import urlparse
+
+try:
+    from django.conf import settings
+except ImportError:
+    settings = object()
 
 
 def add_query(url, params):
@@ -32,10 +36,14 @@ def add_query(url, params):
 
 
 def send_fax_sipgate(uploadfiles, source, dest_numbers=[], guid='', username=None, password=None):
+    
+    credentials = getattr(settings, 'PYPOSTAL_SIPGATE_CRED', os.environ.get('PYPOSTAL_SIPGATE_CRED', ':'))
+    credentials = credentials.split(':', 2)
+    
     if not username:
-        username = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[0]
+        username = credentials[0]
     if not password:
-        password = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':').split(':', 2)[1]
+        password = credentials[1]
     
     sip = Sipgate(username, password)
     return sip.sendFax(uploadfiles, source, dest_numbers)
@@ -78,12 +86,10 @@ class Sipgate(object):
         conn.request("POST", url, headers=headers, body=filedata)
         
         response = conn.getresponse()
-        
         # TODO: Error handling
-        print response.status, response.reason
-        data = response.read()
-        print data
-        
+        # print response.status, response.reason
+        # data = response.read()
+        # print data
         conn.close()
         return guid
 
