@@ -41,6 +41,8 @@ If you prefer to hardcode credentials you can provide them via a function call i
                                        username='your@email.com', 
                                        password='PASSWORD')
 
+In addition the module searches for credentials in the django settings module and in a moduke called `config`.
+
 
 Pixelletter Interface
 =====================
