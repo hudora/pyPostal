@@ -225,7 +225,7 @@ class Pixelletter(object):
 
 def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, username=None,
                           password=None, test_mode=False):
-    credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':'))
+    credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':')
     if not credentials:
         credentials = getattr(settings, 'PYPOSTAL_PIXELLETTER_CRED', None)
     if not credentials:
