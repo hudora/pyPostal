@@ -87,7 +87,7 @@ class Sipgate(object):
 
 
 def send_fax_sipgate(uploadfiles, dest_numbers=[], source=None, guid='', username=None, password=None):
-    credentials = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':'))
+    credentials = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':')
     if not credentials:
         credentials = getattr(settings, 'PYPOSTAL_SIPGATE_CRED', None)
     if not credentials:
