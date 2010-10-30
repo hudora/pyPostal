@@ -1,2 +1,3 @@
-1.1 Send Fax via sipgate.de REST API
-1.0p2 fixe a distutils issue
+1.1c   uniform reading of credentials, packaging fixed 
+1.1    Send Fax via sipgate.de REST API
+1.0p2  fixe a distutils issue
