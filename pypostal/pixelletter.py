@@ -223,17 +223,17 @@ class Pixelletter(object):
         return guid, ''
 
 
-def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, username=None,
-                          password=None, test_mode=False):
-    credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', ':')
-    if not credentials:
-        credentials = getattr(settings, 'PYPOSTAL_PIXELLETTER_CRED', None)
+def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, 
+                          username=None, password=None, test_mode=False):
+
+    credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', None)
     if not credentials:
         credentials = getattr(config, 'PYPOSTAL_PIXELLETTER_CRED', None)
+
     if not username:
-            username = credentials.split(':')[0]
+        username = credentials.split(':')[0]
     if not password:
-            password = credentials.split(':')[1]
+        password = credentials.split(':')[1]
 
     if (not username) or (not password):
         raise RuntimeError('set PYPOSTAL_PIXELLETTER_CRED="user:pass"')
