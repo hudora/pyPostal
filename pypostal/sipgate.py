@@ -18,6 +18,7 @@ try:
     from django.conf import settings
 except ImportError:
     settings = object()
+
 try:
     import config
 except:
@@ -87,9 +88,13 @@ class Sipgate(object):
 
 
 def send_fax_sipgate(uploadfiles, dest_numbers=[], source=None, guid='', username=None, password=None):
-    credentials = os.environ.get('PYPOSTAL_SIPGATE_CRED', ':')
+    credentials = os.environ.get('PYPOSTAL_SIPGATE_CRED', None)
     if not credentials:
-        credentials = getattr(settings, 'PYPOSTAL_SIPGATE_CRED', None)
+        try:
+            credentials = getattr(settings, 'PYPOSTAL_SIPGATE_CRED', None)
+        except Exception:
+            # wenn wir kein Django haben oder aktuell nutzen ignorieren wir alle Fehlermeldungen
+            credentials = None
     if not credentials:
         credentials = getattr(config, 'PYPOSTAL_SIPGATE_CRED', None)
     if not username:

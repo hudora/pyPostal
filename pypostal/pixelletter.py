@@ -14,11 +14,15 @@ import os
 import uuid
 import xml.etree.ElementTree as ET
 
+try:
+    from django.conf import settings
+except ImportError:
+    settings = object()
 
 try:
     import config
 except:
-    config = None
+    config = object()
 
 
 def get_content_type(filename):
@@ -227,6 +231,12 @@ def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None
                           username=None, password=None, test_mode=False):
 
     credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', None)
+    if not credentials:
+        try:
+            credentials = getattr(settings, 'PYPOSTAL_PIXELLETTER_CRED', None)
+        except Exception:
+            # wenn wir kein Django haben oder aktuell nutzen ignorieren wir alle Fehlermeldungen
+            credentials = None
     if not credentials:
         credentials = getattr(config, 'PYPOSTAL_PIXELLETTER_CRED', None)
 
