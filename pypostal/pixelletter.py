@@ -9,6 +9,7 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 
 
 import httplib
+import logging
 import mimetypes
 import os
 import uuid
@@ -223,6 +224,8 @@ class Pixelletter(object):
         content_type, content = encode_multipart_formdata(form, files)
         reply = self.POST(content_type, content)
         if not '<msg>Auftrag erfolgreich ' in reply:
+            if 'Ihr Guthaben reicht nicht aus.' in reply:
+                logging.critical("Pixelletter Guthaben riecht nciht aus.")
             raise RuntimeError("API fehler: %s" % (reply))
         return guid, ''
 
