@@ -15,15 +15,17 @@ import os
 import uuid
 import xml.etree.ElementTree as ET
 
+settings = object()
 try:
     from django.conf import settings
 except ImportError:
-    settings = object()
+    pass
 
+config = object()
 try:
     import config
 except:
-    config = object()
+    pass
 
 
 def get_content_type(filename):
@@ -69,7 +71,7 @@ class Pixelletter(object):
         self.test_mode = test_mode
         self.username = username
         self.password = password
-    
+
     def POST(self, content_type, content):
         h = httplib.HTTP('www.pixelletter.de')
         h.putrequest('POST', '/xml/index.php')
@@ -83,7 +85,7 @@ class Pixelletter(object):
         if str(errcode) != '200':
             raise RuntimeError("%s -- %r" % (errcode, errmsg))
         return content
-    
+
     def _get_auth_xml(self):
         root = ET.Element('pixelletter', version='1.0')
         auth = ET.SubElement(root, 'auth')
@@ -94,20 +96,20 @@ class Pixelletter(object):
         ET.SubElement(auth, 'testmodus').text = 'true' if self.test_mode else 'false'
         ET.SubElement(auth, 'ref').text = 'reference#'
         return root
-    
+
     def get_account_info(self):
         """Return a dict with account status information, e.g
-        
+
         {'company': 'Cyberlogi GmbH'
          'customer_credit': 2007, # Betrag in Cent
-         'customer_data': '', 
-         'customer_id': '353***', 
-         'email': '***@cyberlogi.de', 
-         'payment_type': 'guthaben', 
-         'sex': 'yes', 
-         'tel': '184****', 
-         'tel_prefix': '017*', 
-         'title': 'Dr.', 
+         'customer_data': '',
+         'customer_id': '353***',
+         'email': '***@cyberlogi.de',
+         'payment_type': 'guthaben',
+         'sex': 'yes',
+         'tel': '184****',
+         'tel_prefix': '017*',
+         'title': 'Dr.',
          ...
          }
         """
@@ -135,26 +137,26 @@ class Pixelletter(object):
                 if not text:
                     text = ''
                 ret[child.tag] = text.strip()
-        ret['customer_credit'] = int(float(ret['customer_credit'])*100)
+        ret['customer_credit'] = int(float(ret['customer_credit']) * 100)
         return ret
-
 
     def sendPost(self, uploadfiles, dest_country='DE', guid='', services=None):
         """Instructs pixelletter.de to send a letter.
             Send one PDF printed in color and in CO2 neutral fashion.
-            
-            >>> print pix.sendPost(['/Users/md/Desktop/Testbrief.pdf'], guid='0815-4711', service=['green', 'color'])
-            
+
+            >>> print pix.sendPost(['./Testbrief.pdf'], guid='0815', service=['green', 'color'])
+
             Uploadfiles is a list of filenames to be send (as a single letter). The first page must contain
             the destination Address.
-            
-            dest_country is the country where the letter is going to be send to - this is needed for postage calculation.
-            
+
+            dest_country is the country where the letter is going to be send to - this is needed for
+            postage calculation.
+
             guid is some tracking ID specific to the user and can be left blank
-            
+
             services is a list of additional services requested. It defaults to ['green']
             The Python library currently supports following services:
-            
+
             * green - GoGreen CO2 neutral postage(default, use ``service=[]`` to disable)
             * einschreiben
             * einschreibeneinwurf
@@ -186,7 +188,7 @@ class Pixelletter(object):
             elif service == 'color':
                 addoption.add('33')
             else:
-                raise ValueError('unbekannter servicelevel %s - gueltig ist %r' % (servicelevel,
+                raise ValueError('unbekannter servicelevel %s - gueltig ist %r' % (service,
                     ['einschreiben', 'einschreibeneinwurf', 'eigenhaendig', 'eigenhaendigrueckschein',
                      'rueckschein', 'green', 'color']))
             # Unsupported so far
@@ -195,13 +197,12 @@ class Pixelletter(object):
             # <option value="43" >Überweisungsvordruck
         addoption = ','.join(list(addoption))
 
-
         root = self._get_auth_xml()
 
         order = ET.SubElement(root, 'order', type='upload')
         options = ET.SubElement(order, 'options')
         ET.SubElement(options, 'type').text = 'upload'
-        ET.SubElement(options, 'action').text = '1' # Brief
+        ET.SubElement(options, 'action').text = '1'  # Brief
         ET.SubElement(options, 'destination').text = dest_country
         if guid:
             ET.SubElement(options, 'transaction').text = str(guid)
@@ -218,7 +219,7 @@ class Pixelletter(object):
         form = {'xml': data}
         files = {}
         if len(uploadfiles) < 1:
-            raise ValueError( "No files to send...")
+            raise ValueError("No files to send ...")
         for i, fd in enumerate(uploadfiles):
             files['uploadfile%d' % i] = fd
         content_type, content = encode_multipart_formdata(form, files)
@@ -230,7 +231,7 @@ class Pixelletter(object):
         return guid, ''
 
 
-def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, 
+def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None,
                           username=None, password=None, test_mode=False):
 
     credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', None)
