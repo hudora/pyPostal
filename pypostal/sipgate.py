@@ -9,6 +9,7 @@ Created by Maximillian Dornseif on 2010-08-14.
 Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
+import cgi
 import httplib
 import os
 import urllib
@@ -36,7 +37,7 @@ def add_query(url, params):
     """
 
     url_parts = list(urlparse.urlparse(url))
-    query = dict(urlparse.parse_qsl(url_parts[4]))
+    query = dict(cgi.parse_qsl(url_parts[4]))
     query.update(params)
     url_parts[4] = urllib.urlencode(query)
     return urlparse.urlunparse(url_parts)
