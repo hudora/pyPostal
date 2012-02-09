@@ -48,7 +48,7 @@ def clean_number(number):
 
     if number.startswith('0'):
         number = '49' + number[1:]
-    number = number.replace(' ', '').replace('-', '').replace('+', '')
+    number = number.replace(' ', '').replace('-', '').replace('+', '').replace('/', '')
     return number
 
 
