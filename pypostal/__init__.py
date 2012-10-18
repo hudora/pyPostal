@@ -8,6 +8,6 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
 from pypostal.pixelletter import Pixelletter, send_post_pixelletter
-from pypostal.sipgate import Sipgate, send_fax_sipgate
+from pypostal.sipgate import send_fax_sipgate
 
-__all__ = [Pixelletter, send_post_pixelletter, Sipgate, send_fax_sipgate]
+__all__ = [Pixelletter, send_post_pixelletter, send_fax_sipgate]
