@@ -36,7 +36,7 @@ def encode_multipart_formdata(fields, files={}):
     """
     fields is a sequence of (name, value) elements for regular form fields.
     files is a sequence of (name, filename, value) elements for data to be uploaded as files
-    Return (content_type, body) ready for httplib.HTTP instance
+    Return (content_type, body) ready for httplib.HTTPConnection instance
     """
     # Based on From http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/146306
     boundary = '----------ThIs_Is_tHe_bouNdaRY_$%s' % (uuid.uuid4())
@@ -73,7 +73,7 @@ class Pixelletter(object):
         self.password = password
 
     def POST(self, content_type, content):
-        h = httplib.HTTP('www.pixelletter.de')
+        h = httplib.HTTPConnection('www.pixelletter.de', timeout=10)
         h.putrequest('POST', '/xml/index.php')
         h.putheader('host', 'www.pixelletter.de')
         h.putheader('content-type', content_type)
