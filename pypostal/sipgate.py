@@ -25,7 +25,7 @@ def clean_number(number):
     return number
 
 
-def send_fax_sipgate(uploadfiles, recipients, sender=None, guid='', credentials=''):
+def send_fax_sipgate(uploadfiles, recipients, source=None, guid='', credentials=''):
     """Send a fax to a list of recipients"""
 
     if len(uploadfiles) > 1:
@@ -47,7 +47,6 @@ def send_fax_sipgate(uploadfiles, recipients, sender=None, guid='', credentials=
                                                            content=content,
                                                            headers={"Content-Type": "application/pdf"})
 
-    # TODO: Which errors can occur? 401
     if status != 200:
         logging.warn(u'Response from api.sipgate.net: %s %s', status, content)
 
