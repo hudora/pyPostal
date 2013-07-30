@@ -1,92 +1,50 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-pypostal/postal.py - sending of letters
+pypostal/postal.py - API-Client für Pixelletter
 
 Created by Maximillian Dornseif on 2010-08-12.
 Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
+import huTools.http
+import huTools.monetary
 
-import httplib
 import logging
-import mimetypes
 import os
-import uuid
 import xml.etree.ElementTree as ET
 
-settings = object()
-try:
-    from django.conf import settings
-except ImportError:
-    pass
-
-config = object()
 try:
     import config
-except:
-    pass
-
-
-def get_content_type(filename):
-    return mimetypes.guess_type(filename)[0] or 'application/pdf '
-
-
-def encode_multipart_formdata(fields, files={}):
-    """
-    fields is a sequence of (name, value) elements for regular form fields.
-    files is a sequence of (name, filename, value) elements for data to be uploaded as files
-    Return (content_type, body) ready for httplib.HTTP instance
-    """
-    # Based on From http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/146306
-    boundary = '----------ThIs_Is_tHe_bouNdaRY_$%s' % (uuid.uuid4())
-    out = []
-    # if it's dict like then use the items method to get the fields
-    for (key, value) in fields.items():
-        out.append('--' + boundary)
-        out.append('Content-Disposition: form-data; name="%s"' % key)
-        out.append('')
-        out.append(value)
-    for (key, fd) in files.items():
-        if hasattr(fd, 'name'):
-            filename = fd.name
-            filedata = fd.read()
-        else:
-            filename = key + '.pdf'
-            filedata = fd
-        out.append('--' + boundary)
-        out.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
-        out.append('Content-Type: %s' % get_content_type(filename))
-        out.append('')
-        out.append(filedata)
-    out.append('--' + boundary + '--')
-    out.append('')
-    body = '\r\n'.join([str(x) for x in out])
-    content_type = 'multipart/form-data; boundary=%s' % boundary
-    return content_type, body
+except ImportError:
+    config = object()
 
 
 class Pixelletter(object):
+    """Interface to pixelletter.com"""
+
     def __init__(self, username, password, test_mode=False):
         self.test_mode = test_mode
         self.username = username
         self.password = password
+        self.timeout = 5
 
-    def POST(self, content_type, content):
-        h = httplib.HTTP('www.pixelletter.de')
-        h.putrequest('POST', '/xml/index.php')
-        h.putheader('host', 'www.pixelletter.de')
-        h.putheader('content-type', content_type)
-        h.putheader('content-length', str(len(content)))
-        h.endheaders()
-        h.send(content)
-        errcode, errmsg, headers = h.getreply()
-        content = h.file.read()
-        if str(errcode) != '200':
-            raise RuntimeError("%s -- %r" % (errcode, errmsg))
+    def request(self, content):
+        """Send request to API server"""
+        status, headers, content = huTools.http.fetch(
+            'http://www.pixelletter.de/xml/index.php',
+            method='POST',
+            content=content,
+            multipart=True,
+            timeout=self.timeout)
+
+        if status != 200:
+            raise RuntimeError("%s -- %r" % (status, content))
+        
         return content
 
     def _get_auth_xml(self):
+        """Create the XML root element containing auth data"""
         root = ET.Element('pixelletter', version='1.0')
         auth = ET.SubElement(root, 'auth')
         ET.SubElement(auth, 'email').text = self.username
@@ -114,14 +72,13 @@ class Pixelletter(object):
          }
         """
         root = self._get_auth_xml()
-
         command = ET.SubElement(root, 'command')
         info = ET.SubElement(command, 'info')
-        ET.SubElement(info, 'account:info ', type='all')
-        data = ET.tostring(root)
-        content_type, content = encode_multipart_formdata(fields=dict(xml=data))
+        ET.SubElement(info, 'account:info', type='all')
 
-        reply = self.POST(content_type, content)
+        content = {'xml': ET.tostring(root)}
+        reply = self.request(content)
+
         # Pixelletter's XML is invalid
         # it is messing with namespaces - remove them to generate valid XML
         content = reply.replace('customer:', 'customer_')
@@ -130,41 +87,45 @@ class Pixelletter(object):
         content = content.replace('mobil:prefix', 'mobil_prefix')
         content = content.replace('payment:type', 'payment_type')
         response = ET.fromstring(content)
-        ret = {}
+        info = {}
         for parent in response.getiterator():
             for child in parent:
                 text = child.text
                 if not text:
                     text = ''
-                ret[child.tag] = text.strip()
-        ret['customer_credit'] = int(float(ret['customer_credit']) * 100)
-        return ret
+                info[child.tag] = text.strip()
+        info['customer_credit'] = int(huTools.monetary.euro_to_cent(info.get('customer_credit', '0')))
+        return info
 
-    def sendPost(self, uploadfiles, dest_country='DE', guid='', services=None):
-        """Instructs pixelletter.de to send a letter.
-            Send one PDF printed in color and in CO2 neutral fashion.
+    def send_post(self, uploadfiles, dest_country='DE', guid='', services=None):
+        """
+        Instructs pixelletter.de to send a letter.
 
-            >>> print pix.sendPost(['./Testbrief.pdf'], guid='0815', service=['green', 'color'])
+        Send one PDF printed in color and in CO2 neutral fashion.
 
-            Uploadfiles is a list of filenames to be send (as a single letter). The first page must contain
-            the destination Address.
+        >>> print pix.send_post(['./Testbrief.pdf'],
+                               guid='01fe190fb6b626154bad760334907ce9',
+                               service=['green', 'color'])
 
-            dest_country is the country where the letter is going to be send to - this is needed for
-            postage calculation.
+        Uploadfiles is a list of files to be send (as a single letter). The first page must contain
+        the destination Address.
 
-            guid is some tracking ID specific to the user and can be left blank
+        dest_country is the country where the letter is going to be send to - this is needed for
+        postage calculation.
 
-            services is a list of additional services requested. It defaults to ['green']
-            The Python library currently supports following services:
+        guid is some tracking ID specific to the user and can be left blank
 
-            * green - GoGreen CO2 neutral postage(default, use ``service=[]`` to disable)
-            * einschreiben
-            * einschreibeneinwurf
-            * eigenhaendig
-            * eigenhaendigrueckschein
-            * rueckschein
-            * color
-            """
+        services is a list of additional services requested. It defaults to ['green']
+        The Python library currently supports following services:
+
+        * green - GoGreen CO2 neutral postage(default, use ``service=[]`` to disable)
+        * einschreiben
+        * einschreibeneinwurf
+        * eigenhaendig
+        * eigenhaendigrueckschein
+        * rueckschein
+        * color
+        """
         if not services:
             services = ['green']
         addoption = set()
@@ -188,14 +149,9 @@ class Pixelletter(object):
             elif service == 'color':
                 addoption.add('33')
             else:
-                raise ValueError('unbekannter servicelevel %s - gueltig ist %r' % (service,
+                raise ValueError('Unbekannter Servicelevel %s - gueltig ist %r' % (service,
                     ['einschreiben', 'einschreibeneinwurf', 'eigenhaendig', 'eigenhaendigrueckschein',
                      'rueckschein', 'green', 'color']))
-            # Unsupported so far
-            # <option value="31" >Nachnahme
-            # <option value="42"> Postident Comfort
-            # <option value="43" >Überweisungsvordruck
-        addoption = ','.join(list(addoption))
 
         root = self._get_auth_xml()
 
@@ -204,30 +160,20 @@ class Pixelletter(object):
         ET.SubElement(options, 'type').text = 'upload'
         ET.SubElement(options, 'action').text = '1'  # Brief
         ET.SubElement(options, 'destination').text = dest_country
-        if guid:
-            ET.SubElement(options, 'transaction').text = str(guid)
-        if addoption:
-            ET.SubElement(options, 'addoption').text = addoption
+        ET.SubElement(options, 'transaction').text = str(guid)
+        ET.SubElement(options, 'addoption').text = ','.join(addoption)
 
-        # Unsupported so far:
-        # <fax>
-        # <control>
-        # <returnaddress>
+        if not uploadfiles:
+            raise ValueError('No files to send.')
+        form = {'xml': ET.tostring(root)}
+        for index, fd in enumerate(uploadfiles):
+            form['uploadfile%d' % index] = fd
 
-        data = ET.tostring(root)
-        # print data
-        form = {'xml': data}
-        files = {}
-        if len(uploadfiles) < 1:
-            raise ValueError("No files to send ...")
-        for i, fd in enumerate(uploadfiles):
-            files['uploadfile%d' % i] = fd
-        content_type, content = encode_multipart_formdata(form, files)
-        reply = self.POST(content_type, content)
+        reply = self.request(form)
         if not '<msg>Auftrag erfolgreich ' in reply:
             if 'Ihr Guthaben reicht nicht aus.' in reply:
-                logging.critical("Pixelletter Guthaben riecht nciht aus.")
-            raise RuntimeError("API fehler: %s" % (reply))
+                logging.critical("Pixelletter-Guthaben reicht nicht aus.")
+            raise RuntimeError("API fehler: %s" % reply)
         return guid, ''
 
 
@@ -235,12 +181,6 @@ def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None
                           username=None, password=None, test_mode=False):
 
     credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', None)
-    if not credentials:
-        try:
-            credentials = getattr(settings, 'PYPOSTAL_PIXELLETTER_CRED', None)
-        except Exception:
-            # wenn wir kein Django haben oder aktuell nutzen ignorieren wir alle Fehlermeldungen
-            credentials = None
     if not credentials:
         credentials = getattr(config, 'PYPOSTAL_PIXELLETTER_CRED', None)
 
@@ -252,4 +192,4 @@ def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None
     if (not username) or (not password):
         raise RuntimeError('set PYPOSTAL_PIXELLETTER_CRED="user:pass"')
     pix = Pixelletter(username, password, test_mode=test_mode)
-    return pix.sendPost(uploadfiles, dest_country, services=services)
+    return pix.send_post(uploadfiles, dest_country, guid=guid, services=services)
