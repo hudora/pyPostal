@@ -12,6 +12,10 @@ import logging
 
 import huTools.http
 
+try:
+    import config
+except ImportError:
+    config = object()
 
 API_VERSION = '2.17.0'
 
@@ -27,6 +31,9 @@ def clean_number(number):
 
 def send_fax_sipgate(uploadfiles, recipients, source=None, guid='', credentials=''):
     """Send a fax to a list of recipients"""
+
+    if not credentials:
+        credentials = getattr(config, 'PYPOSTAL_SIPGATE_CRED', '')
 
     if len(uploadfiles) > 1:
         raise ValueError('Sipgate currently only supports single PDF uploading')
