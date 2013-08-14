@@ -43,6 +43,7 @@ def encode_multipart_formdata(fields, files={}):
     out = []
     # if it's dict like then use the items method to get the fields
     for (key, value) in fields.items():
+        logging.debug(u'key: %s', key)
         out.append('--' + boundary)
         out.append('Content-Disposition: form-data; name="%s"' % key)
         out.append('')
@@ -54,6 +55,7 @@ def encode_multipart_formdata(fields, files={}):
         else:
             filename = key + '.pdf'
             filedata = fd
+        logging.debug(u'filename: %s', filename)
         out.append('--' + boundary)
         out.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
         out.append('Content-Type: %s' % get_content_type(filename))
@@ -216,6 +218,7 @@ class Pixelletter(object):
 
         data = ET.tostring(root)
         # print data
+        logging.debug(u'xml: %s', data)
         form = {'xml': data}
         files = {}
         if len(uploadfiles) < 1:
@@ -252,4 +255,4 @@ def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None
     if (not username) or (not password):
         raise RuntimeError('set PYPOSTAL_PIXELLETTER_CRED="user:pass"')
     pix = Pixelletter(username, password, test_mode=test_mode)
-    return pix.sendPost(uploadfiles, dest_country, services=services)
+    return pix.sendPost(uploadfiles, dest_country, guid=guid, services=services)
