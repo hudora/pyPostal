@@ -63,9 +63,7 @@ class Pixelletter(object):
     def parse_response(self, data):
 
         # Namespace-Fuckup bei Pixelletter...
-        print data
         data = re.sub(r'<(/?)(\w+):(\w+)', r'<\1\2_\3', data)
-        print data
         tree = ET.fromstring(data)
         result = tree.find('response/result')
         response = dict(code=result.attrib.get('code', '999'),
@@ -190,7 +188,6 @@ class Pixelletter(object):
 
         data = self.request(form)
         response = self.parse_response(data)
-        print response
         if response['code'] == '048':
             raise DuplicateTransactionnumberError(guid)
         else:
