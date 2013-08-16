@@ -6,18 +6,26 @@ pypostal/postal.py - API-Client für Pixelletter
 Created by Maximillian Dornseif on 2010-08-12.
 Copyright (c) 2010 HUDORA. All rights reserved.
 """
-
-import huTools.http
-import huTools.monetary
-
+import re
 import logging
 import os
 import xml.etree.ElementTree as ET
+
+import huTools.http
+import huTools.monetary
 
 try:
     import config
 except ImportError:
     config = object()
+
+
+class PixelletterError(Exception):
+    """Basisklasse für Fehler der Pixelletter-API"""
+
+
+class DuplicateTransactionnumberError(PixelletterError):
+    """Transaktionsnummer wurde doppelt verwendet"""
 
 
 class Pixelletter(object):
@@ -31,17 +39,14 @@ class Pixelletter(object):
 
     def request(self, content):
         """Send request to API server"""
-        status, headers, content = huTools.http.fetch(
+        status, headers, data = huTools.http.fetch(
             'http://www.pixelletter.de/xml/index.php',
             method='POST',
             content=content,
             multipart=True,
             timeout=self.timeout)
 
-        if status != 200:
-            raise RuntimeError("%s -- %r" % (status, content))
-        
-        return content
+        return data
 
     def _get_auth_xml(self):
         """Create the XML root element containing auth data"""
@@ -54,6 +59,20 @@ class Pixelletter(object):
         ET.SubElement(auth, 'testmodus').text = 'true' if self.test_mode else 'false'
         ET.SubElement(auth, 'ref').text = 'reference#'
         return root
+
+    def parse_response(self, data):
+
+        # Namespace-Fuckup bei Pixelletter...
+        print data
+        data = re.sub(r'<(/?)(\w+):(\w+)', r'<\1\2_\3', data)
+        print data
+        tree = ET.fromstring(data)
+        result = tree.find('response/result')
+        response = dict(code=result.attrib.get('code', '999'),
+                        msg=result.findtext('msg'),
+                        transaction=result.findtext('transaction'),
+                        id=result.findtext('id'))
+        return response
 
     def get_account_info(self):
         """Return a dict with account status information, e.g
@@ -169,12 +188,14 @@ class Pixelletter(object):
         for index, fd in enumerate(uploadfiles):
             form['uploadfile%d' % index] = fd
 
-        reply = self.request(form)
-        if not '<msg>Auftrag erfolgreich ' in reply:
-            if 'Ihr Guthaben reicht nicht aus.' in reply:
-                logging.critical("Pixelletter-Guthaben reicht nicht aus.")
-            raise RuntimeError("API fehler: %s" % reply)
-        return guid, ''
+        data = self.request(form)
+        response = self.parse_response(data)
+        print response
+        if response['code'] == '048':
+            raise DuplicateTransactionnumberError(guid)
+        else:
+            raise RuntimeError("API fehler: %s" % response)
+        return guid
 
 
 def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None,
