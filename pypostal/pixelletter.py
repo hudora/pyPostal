@@ -188,11 +188,12 @@ class Pixelletter(object):
 
         data = self.request(form)
         response = self.parse_response(data)
-        if response['code'] == '048':
+        if response['code'] == '100':
+            return guid
+        elif response['code'] == '048':
             raise DuplicateTransactionnumberError(guid)
         else:
             raise RuntimeError("API fehler: %s" % response)
-        return guid
 
 
 def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None,
