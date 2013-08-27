@@ -45,7 +45,7 @@ def send_fax_sipgate(uploadfiles, recipients, source=None, guid='', credentials=
 
     params = dict(version=API_VERSION, targets=','.join('tel:' + clean_number(dest) for dest in recipients))
     if source:
-        params['source'] = 'tel:' + clean_number(source),
+        params['source'] = 'tel:' + clean_number(source)
 
     url = 'https://api.sipgate.net/my/events/faxes/'
 
