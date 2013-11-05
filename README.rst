@@ -121,3 +121,9 @@ Links
 * `PHP Library <http://www.pixelletter.de/xml/pixelletter.class.txt>`_ for Pixelletter
 * `Pixelletter Documentation <https://www.pixelletter.de/de/doku2.php>`_
 * `pyJasper <http://github.com/hudora/pyJasper>`_ and `iReport <http://www.jaspersoft.com/de/ireport>`_ are a decent way to generate PDFs.
+
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/hudora/pypostal/trend.png
+   :alt: Bitdeli badge
+   :target: https://bitdeli.com/free
+
