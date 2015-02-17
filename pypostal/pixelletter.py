@@ -198,7 +198,7 @@ class Pixelletter(object):
             raise RuntimeError("API fehler: %s" % response)
 
 
-def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, duplex=False,
+def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, duplex=True,
                           username=None, password=None, test_mode=False):
 
     credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', None)
