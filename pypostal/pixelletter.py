@@ -114,7 +114,7 @@ class Pixelletter(object):
         info['customer_credit'] = int(huTools.monetary.euro_to_cent(info.get('customer_credit', '0')))
         return info
 
-    def send_post(self, uploadfiles, dest_country='DE', guid='', services=None):
+    def send_post(self, uploadfiles, dest_country='DE', guid='', services=None, duplex=True):
         """
         Instructs pixelletter.de to send a letter.
 
@@ -179,6 +179,8 @@ class Pixelletter(object):
         ET.SubElement(options, 'destination').text = dest_country
         ET.SubElement(options, 'transaction').text = str(guid)
         ET.SubElement(options, 'addoption').text = ','.join(addoption)
+        if duplex is False:
+            ET.SubElement(options, 'control').text = 'NODUPLEX'
 
         if not uploadfiles:
             raise ValueError('No files to send.')
@@ -196,7 +198,7 @@ class Pixelletter(object):
             raise RuntimeError("API fehler: %s" % response)
 
 
-def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None,
+def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, duplex=False,
                           username=None, password=None, test_mode=False):
 
     credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', None)
@@ -211,4 +213,4 @@ def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None
     if (not username) or (not password):
         raise RuntimeError('set PYPOSTAL_PIXELLETTER_CRED="user:pass"')
     pix = Pixelletter(username, password, test_mode=test_mode)
-    return pix.send_post(uploadfiles, dest_country, guid=guid, services=services)
+    return pix.send_post(uploadfiles, dest_country, guid=guid, services=services, duplex=duplex)
