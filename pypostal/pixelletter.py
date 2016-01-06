@@ -114,7 +114,7 @@ class Pixelletter(object):
         info['customer_credit'] = int(huTools.monetary.euro_to_cent(info.get('customer_credit', '0')))
         return info
 
-    def send_post(self, uploadfiles, dest_country='DE', guid='', services=None, duplex=True):
+    def send_post(self, uploadfiles, dest_country='DE', guid='', services=None, duplex=False):
         """
         Instructs pixelletter.de to send a letter.
 
@@ -198,7 +198,7 @@ class Pixelletter(object):
             raise RuntimeError("API fehler: %s" % response)
 
 
-def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, duplex=True,
+def send_post_pixelletter(uploadfiles, dest_country='DE', guid='', services=None, duplex=False,
                           username=None, password=None, test_mode=False):
 
     credentials = os.environ.get('PYPOSTAL_PIXELLETTER_CRED', None)
