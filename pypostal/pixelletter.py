@@ -40,7 +40,7 @@ class Pixelletter(object):
     def request(self, content):
         """Send request to API server"""
         status, headers, data = huTools.http.fetch(
-            'http://www.pixelletter.de/xml/index.php',
+            'https://www.pixelletter.de/xml/index.php',
             method='POST',
             content=content,
             multipart=True,
